@@ -1,81 +1,183 @@
 #!/bin/bash
+# Minimal StrongSwan + iptables setup for Palo Alto GlobalProtect on Ubuntu 20.04+
+
 set -e
 
-echo "=== Installation et configuration StrongSwan (IPsec ↔ Palo Alto) ==="
-
+#-------------------------------------------------------------------------------
 # Vérification root
-if [[ $EUID -ne 0 ]]; then
-  echo "Ce script doit être lancé en root." >&2
+#-------------------------------------------------------------------------------
+if [[ "$EUID" -ne 0 ]]; then
+  echo "Ce script doit être exécuté en root." >&2
   exit 1
 fi
 
-# Récupération IP publique par défaut (si possible)
-DEFAULT_PUB_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+#-------------------------------------------------------------------------------
+# CONFIGURATION À ADAPTER
+#-------------------------------------------------------------------------------
 
-read -p "Nom de la connexion [palo-alto-vpn] : " CONN_NAME
-CONN_NAME=${CONN_NAME:-palo-alto-vpn}
+# Palo Alto GlobalProtect
+PALO_ALTO_GW=""      # IP du gateway Palo Alto
+PALO_ALTO_ID=""      # Remote ID (FQDN ou IP)
+PSK=""               # Pre-Shared Key
+LOCAL_ID=""          # ID local (identifiant de ce serveur)
 
-read -p "IP publique du Palo Alto (vue depuis cette VM, ex: 51.159.162.39) : " PA_PUBLIC
-read -p "ID du Palo Alto (souvent son IP interne, ex: 172.16.8.2) : " PA_ID
+# Réseaux
+LOCAL_SUBNET=""      # Subnet VPC (ex: 10.0.0.0/24)
+REMOTE_SUBNET=""     # Subnet distant (ex: 192.168.1.0/24)
+VPC_INTERFACE="ens2" # Interface privée
+WAN_INTERFACE="ens2" # Interface WAN
 
-read -p "Sous-réseau LOCAL (côté StrongSwan, ex: 172.16.32.0/22) : " LOCAL_SUBNET
-read -p "Sous-réseau DISTANT (côté Palo Alto, ex: 172.16.12.0/22) : " REMOTE_SUBNET
+# IKE / ESP
+IKE_ENCRYPTION="aes256-sha256-modp2048"
+ESP_ENCRYPTION="aes256-sha256"
+KEYEXCHANGE="ikev2"   # ikev1 ou ikev2
 
-read -p "ID local (IP publique de cette VM) [${DEFAULT_PUB_IP}] : " LOCAL_ID
-LOCAL_ID=${LOCAL_ID:-$DEFAULT_PUB_IP}
+# DPD / durées
+DPD_DELAY="30s"
+DPD_TIMEOUT="120s"
+REKEY_TIME="4h"
+LIFETIME="24h"
 
-read -sp "Clé pré-partagée (PSK) : " PSK
-echo ""
+#-------------------------------------------------------------------------------
+# Validation minimale de la configuration
+#-------------------------------------------------------------------------------
+missing=0
+for var in PALO_ALTO_GW PALO_ALTO_ID PSK LOCAL_ID LOCAL_SUBNET REMOTE_SUBNET; do
+  if [[ -z "${!var}" ]]; then
+    echo "Variable de config manquante: $var" >&2
+    missing=1
+  fi
+done
 
-echo "=== Installation des paquets StrongSwan ==="
-apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get install -y strongswan strongswan-pki libcharon-extra-plugins
+if [[ "$missing" -ne 0 ]]; then
+  echo "Veuillez renseigner toutes les variables de configuration avant d'exécuter le script." >&2
+  exit 1
+fi
 
-echo "=== Génération de /etc/ipsec.conf ==="
-cat >/etc/ipsec.conf <<EOF
-config setup
-    charondebug="ike 2, knl 2, cfg 2, net 2"
-    uniqueids=never
+#-------------------------------------------------------------------------------
+# Installation des paquets nécessaires
+#-------------------------------------------------------------------------------
+echo "[*] Installation des paquets..."
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  strongswan \
+  iptables \
+  iptables-persistent
 
-conn ${CONN_NAME}
-    keyexchange=ikev2
-    type=tunnel
-    auto=start
+#-------------------------------------------------------------------------------
+# Paramètres noyau (IP forwarding + rp_filter)
+#-------------------------------------------------------------------------------
+echo "[*] Configuration des paramètres noyau..."
+cat >/etc/sysctl.d/99-vpn.conf <<EOF
+net.ipv4.ip_forward = 1
 
-    ike=aes256-sha256-modp2048!
-    esp=aes256-sha256!
-
-    left=%defaultroute
-    leftid=${LOCAL_ID}
-    leftsubnet=${LOCAL_SUBNET}
-    leftauth=psk
-    leftfirewall=yes
-
-    right=${PA_PUBLIC}
-    rightid=${PA_ID}
-    rightsubnet=${REMOTE_SUBNET}
-    rightauth=psk
-
-    authby=psk
-
-    dpdaction=restart
-    dpddelay=30s
-    dpdtimeout=120s
+# Désactiver rp_filter pour l'IPsec (sinon routage asymétrique posé problème)
+net.ipv4.conf.all.rp_filter = 0
+net.ipv4.conf.default.rp_filter = 0
+net.ipv4.conf.$WAN_INTERFACE.rp_filter = 0
+net.ipv4.conf.$VPC_INTERFACE.rp_filter = 0
 EOF
 
-echo "=== Génération de /etc/ipsec.secrets ==="
+sysctl -p /etc/sysctl.d/99-vpn.conf
+
+#-------------------------------------------------------------------------------
+# Configuration StrongSwan (ipsec.conf / ipsec.secrets)
+#-------------------------------------------------------------------------------
+echo "[*] Configuration de StrongSwan..."
+
+# Sauvegarde rapide si existant
+[ -f /etc/ipsec.conf ] && cp /etc/ipsec.conf /etc/ipsec.conf.bak.$(date +%s)
+[ -f /etc/ipsec.secrets ] && cp /etc/ipsec.secrets /etc/ipsec.secrets.bak.$(date +%s)
+
+cat >/etc/ipsec.conf <<EOF
+config setup
+  uniqueids=never
+
+conn %default
+  ikelifetime=$LIFETIME
+  keylife=$REKEY_TIME
+  keyexchange=$KEYEXCHANGE
+  dpdaction=restart
+  dpddelay=$DPD_DELAY
+  dpdtimeout=$DPD_TIMEOUT
+  keyingtries=%forever
+  mobike=no
+
+conn palo-alto-vpn
+  left=%defaultroute
+  leftid="$LOCAL_ID"
+  leftsubnet=$LOCAL_SUBNET
+  leftfirewall=yes
+
+  right=$PALO_ALTO_GW
+  rightid="$PALO_ALTO_ID"
+  rightsubnet=$REMOTE_SUBNET
+
+  authby=secret
+  ike=$IKE_ENCRYPTION!
+  esp=$ESP_ENCRYPTION!
+  type=tunnel
+  auto=start
+EOF
+
 cat >/etc/ipsec.secrets <<EOF
-: PSK "${PSK}"
+: PSK "$PSK"
 EOF
 chmod 600 /etc/ipsec.secrets
 
-echo "=== Activation / redémarrage StrongSwan ==="
-systemctl enable strongswan-starter >/dev/null 2>&1 || true
-systemctl restart strongswan-starter
+#-------------------------------------------------------------------------------
+# Règles iptables minimales (input + forward + NAT)
+#-------------------------------------------------------------------------------
+echo "[*] Configuration des règles iptables..."
+
+# Flush de base
+iptables -F
+iptables -t nat -F
+iptables -X
+
+# Politiques par défaut
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+
+# Loopback
+iptables -A INPUT -i lo -j ACCEPT
+
+# Connexions établies
+iptables -A INPUT   -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# SSH (adapter le port si nécessaire)
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# IPsec / IKE
+iptables -A INPUT -p udp --dport 500  -j ACCEPT
+iptables -A INPUT -p udp --dport 4500 -j ACCEPT
+iptables -A INPUT -p esp -j ACCEPT
+iptables -A INPUT -p ah  -j ACCEPT
+
+# ICMP (utile pour le debug, pas strictement obligatoire)
+iptables -A INPUT -p icmp -j ACCEPT
+
+# Forward entre VPC et subnet distant
+iptables -A FORWARD -s "$LOCAL_SUBNET"  -d "$REMOTE_SUBNET" -j ACCEPT
+iptables -A FORWARD -s "$REMOTE_SUBNET" -d "$LOCAL_SUBNET"  -j ACCEPT
+
+# NAT pour le trafic VPC vers Internet (hors subnet distant)
+iptables -t nat -A POSTROUTING -s "$LOCAL_SUBNET" -o "$WAN_INTERFACE" ! -d "$REMOTE_SUBNET" -j MASQUERADE
+
+# Sauvegarde des règles (si iptables-persistent est présent)
+netfilter-persistent save || true
+
+#-------------------------------------------------------------------------------
+# Démarrage StrongSwan
+#-------------------------------------------------------------------------------
+echo "[*] Activation et redémarrage du service StrongSwan..."
+systemctl enable strongswan
+systemctl restart strongswan
 
 echo
-echo "=== État du VPN ==="
-ipsec statusall || true
-
-echo
-echo "Terminé. Vérifie maintenant que Palo Alto voit bien l'IKE SA (show vpn ike-sa)."
+echo "[OK] Installation minimale StrongSwan terminée."
+echo "Vérification :"
+echo "  ipsec status"
+echo "  journalctl -u strongswan -f"
