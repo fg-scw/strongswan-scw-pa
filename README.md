@@ -26,6 +26,48 @@ graph LR
 
 ```
 ---
+```mermaid
+graph TB
+  subgraph INTERNET["🌐 Internet Public"]
+    direction LR
+    PA_PUB["51.159.83.78<br/>(PA VM-Series)"]
+    SS_PUB["51.159.83.52<br/>(StrongSwan)"]
+  end
+
+  subgraph VPC1["Scaleway VPC 1 - UNTRUST Zone"]
+    direction LR
+    UNTRUST["Private Network<br/>172.16.8.0/22"]
+    NATGW["Public Gateway + IGW<br/>Pub: 51.159.162.39<br/>Priv: 172.16.8.3/22<br/><br/>NAT-T: UDP 500/4500"]
+    PA_UNTRUST["PA VM-Series<br/>UNTRUST Interface<br/>172.16.8.2/22"]
+    UNTRUST --- PA_UNTRUST
+    UNTRUST --- NATGW
+  end
+
+  subgraph VPC1_TRUST["Scaleway VPC 1 - TRUST Zone"]
+    direction LR
+    TRUST["Private Network<br/>172.16.12.0/22"]
+    PA_TRUST["PA VM-Series<br/>TRUST Interface<br/>172.16.12.2/22"]
+    TRUST --- PA_TRUST
+  end
+
+  subgraph VPC2["Scaleway VPC 2 - StrongSwan"]
+    direction LR
+    LAN2["Private Network<br/>172.16.32.0/22"]
+    SS["StrongSwan VM<br/>Pub: 51.159.83.52<br/>Priv: 172.16.32.2/22"]
+    LAN2 --- SS
+  end
+
+  PA_PUB -.->|Site-to-Site IPsec| SS_PUB
+  NATGW -->|NAT-T<br/>UDP 500/4500| SS_PUB
+  PA_UNTRUST -->|Tunnel Initiation| PA_PUB
+  PA_TRUST -->|Encrypted Traffic<br/>172.16.12.0/22 ↔ 172.16.32.0/22| PA_UNTRUST
+
+  style INTERNET fill:#e1f5ff
+  style VPC1 fill:#fff3e0
+  style VPC1_TRUST fill:#f3e5f5
+  style VPC2 fill:#e8f5e9
+ ``` 
+---
 
 ```text
 +-----------------------------+                         +-----------------------------+
