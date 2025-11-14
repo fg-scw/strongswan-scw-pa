@@ -58,9 +58,6 @@ graph TB
   style TRUST fill:#1e293b,stroke:#a78bfa,stroke-width:2px,color:#e0e7ff
   style LAN2 fill:#1e293b,stroke:#34d399,stroke-width:2px,color:#e0e7ff
 ```  
-
----
-```
 ---
 
 ##  Files in this repository
