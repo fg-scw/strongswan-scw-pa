@@ -1,33 +1,34 @@
 # Palo Alto ↔ StrongSwan – IPsec Site-to-Site (Scaleway)
 
-## 🔭 High-level Diagram
+##  High-level Diagram
 
 ```mermaid
 graph LR
-    subgraph VPC1["Scaleway VPC 1"]
-        LAN1["LAN PA\n172.16.12.0/22"]
-        PA["Palo Alto VM-Series\nTRUST: 172.16.12.2/22\nUNTRUST: 172.16.8.2/22"]
-        NATGW["NAT GW\nPub: 51.159.162.39\nPriv: 172.16.8.3/22"]
-        LAN1 --- PA
-        PA --- NATGW
-    end
+  subgraph VPC1["Scaleway VPC 1"]
+    LAN1["LAN PA 172.16.12.0/22"]
+    PA["Palo Alto VM-Series\nTRUST: 172.16.12.2/22\nUNTRUST: 172.16.8.2/22"]
+    NATGW["NAT GW\nPub: 51.159.162.39\nPriv: 172.16.8.3/22"]
+    LAN1 --- PA
+    PA --- NATGW
+  end
 
-    subgraph INTERNET["Internet"]
-    end
+  subgraph INTERNET["Internet"]
+  end
 
-    subgraph VPC2["Scaleway VPC 2"]
-        LAN2["LAN StrongSwan\n172.16.32.0/22"]
-        SS["StrongSwan VM\nPub: 51.159.83.52\nPriv: 172.16.32.2/22"]
-        LAN2 --- SS
-    end
+  subgraph VPC2["Scaleway VPC 2"]
+    LAN2["LAN StrongSwan 172.16.32.0/22"]
+    SS["StrongSwan VM\nPub: 51.159.83.52\nPriv: 172.16.32.2/22"]
+    LAN2 --- SS
+  end
 
-    NATGW -->|UDP 500/4500 (NAT-T)| SS
-    PA <-->|IPsec Tunnel\n172.16.12.0/22 ⇄ 172.16.32.0/22| SS
+  NATGW -- "UDP 500/4500 (NAT-T)" --> SS
+  PA -- "IPsec Tunnel 172.16.12.0/22 <-> 172.16.32.0/22" --- SS
+
 ```
 
 ---
 
-## 📁 Files in this repository
+##  Files in this repository
 
 - `palo-alto.conf` – CLI configuration snippet for the Palo Alto VM-Series  
   (interfaces, zones, IKE gateway, IPsec tunnel, routes, security rules).
@@ -36,7 +37,7 @@ graph LR
 
 ---
 
-## 🌐 Addresses & Roles (reference)
+##  Addresses & Roles (reference)
 
 **Palo Alto VM-Series (VPC1)**  
 - TRUST (LAN) : `172.16.12.2/22` → `172.16.12.0/22`  
@@ -55,7 +56,7 @@ graph LR
 
 ---
 
-## 🔐 IPsec Parameters (shared)
+##  IPsec Parameters (shared)
 
 - IKE version : **IKEv2**
 - IKE crypto : `aes256-sha256-modp2048`
@@ -72,7 +73,7 @@ graph LR
 
 ---
 
-## 🚀 Usage
+##  Usage
 
 ### 1. Palo Alto
 
