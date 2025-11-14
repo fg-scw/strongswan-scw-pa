@@ -136,6 +136,66 @@ graph TB
    ipsec statusall
    ```
 
+### 3. Configuration de VM Cliente & VM StrongSwan pour autoriser un accès internet aux VMs cliente
+
+1. Côté Serveur Strongswan
+   ```bash
+    sysctl -w net.ipv4.ip_forward=1
+    
+    cat >/etc/sysctl.d/99-ipforward.conf <<'EOF'
+    net.ipv4.ip_forward = 1
+    EOF
+    
+    sysctl --system
+   ```
+   ---
+   
+   ```bash
+    WAN_IF=ens2
+    
+    iptables -t nat -A POSTROUTING -s 172.16.32.0/22 -o $WAN_IF -j MASQUERADE
+    iptables -A FORWARD -s 172.16.32.0/22 -o $WAN_IF -j ACCEPT
+    iptables -A FORWARD -d 172.16.32.0/22 -i $WAN_IF -m state --state ESTABLISHED,RELATED -j ACCEPT
+    netfilter-persistent save 2>/dev/null || true
+   ```
+
+3. Côté Client Strongswan
+
+   ```bash
+   # Ajoute la route par défaut vers 172.16.32.2 (SRV StrongSwan)
+    ip route add default via 172.16.32.2
+   ```
+Tests rapides
+Sur la VM cliente :
+   ```bash
+    # Vers le serveur StrongSwan (LAN)
+    ping 172.16.32.2
+    
+    # Vers Internet
+    ping 1.1.1.1
+    ping google.com
+   ```
+ 
+4. Check connectivity
+
+   ```bash
+    root@scw-strongswan-client:~# ip route show
+    default via 172.16.32.2 dev ens6
+    169.254.42.42 dev ens6 proto dhcp scope link src 172.16.32.3 metric 50
+    169.254.169.254 dev ens6 proto dhcp scope link src 172.16.32.3 metric 50
+    172.16.32.0/22 dev ens6 proto kernel scope link src 172.16.32.3 metric 50
+    root@scw-strongswan-client:~# ping google.com -c2
+    PING google.com (216.58.214.78) 56(84) bytes of data.
+    64 bytes from fra15s10-in-f78.1e100.net (216.58.214.78): icmp_seq=1 ttl=116 time=2.60 ms
+    64 bytes from fra15s10-in-f78.1e100.net (216.58.214.78): icmp_seq=2 ttl=116 time=3.24 ms
+    
+    --- google.com ping statistics ---
+    2 packets transmitted, 2 received, 0% packet loss, time 1002ms
+    rtt min/avg/max/mdev = 2.602/2.923/3.244/0.321 ms
+    root@scw-strongswan-client:~#
+   ```
+
+
 If both sides are correctly configured, you should see an **ESTABLISHED** IKE SA and be able to reach:
 
 - From Palo Alto LAN (`172.16.12.0/22`) → `172.16.32.0/22`
