@@ -209,7 +209,7 @@ If both sides are correctly configured, you should see an **ESTABLISHED** IKE SA
     root@scw-strongswan-client:~#
    ```
 
-5. Factory Reset
+### 5. Factory Reset (Ubuntu/Debian)
 
    ```bash
     # 1. Stopper et désactiver StrongSwan + éventuels services VPN custom
