@@ -210,6 +210,48 @@ If both sides are correctly configured, you should see an **ESTABLISHED** IKE SA
    ```
 
 ### 5. Factory Reset (Ubuntu/Debian)
+   ```bash
+    # 1. Arrêt et désactivation des services StrongSwan & scripts VPN
+    systemctl stop strongswan-starter strongswan ipsec 2>/dev/null || true
+    systemctl disable strongswan-starter strongswan ipsec 2>/dev/null || true
+    
+    systemctl stop vpn-healthcheck.service vpn-routes.service 2>/dev/null || true
+    systemctl disable vpn-healthcheck.service vpn-routes.service 2>/dev/null || true
+    
+    # 2. Suppression des services / scripts custom créés par les anciens scripts
+    rm -f /etc/systemd/system/vpn-healthcheck.service
+    rm -f /etc/systemd/system/vpn-routes.service
+    rm -f /usr/local/bin/vpn-healthcheck.sh
+    rm -f /usr/local/bin/vpn-status.sh
+    rm -f /usr/local/bin/setup-vpn-routes.sh
+    rm -f /usr/local/bin/cleanup-vpn-routes.sh
+    
+    systemctl daemon-reload
+    
+    # 3. Suppression de la configuration StrongSwan
+    rm -f /etc/ipsec.conf
+    rm -f /etc/ipsec.secrets
+    rm -rf /etc/strongswan* /var/lib/strongswan
+    
+    # 4. Suppression des fichiers sysctl ajoutés pour le VPN
+    rm -f /etc/sysctl.d/99-vpn.conf
+    rm -f /etc/sysctl.d/99-ipforward.conf
+    sysctl --system
+    
+    # 5. Reset iptables + règles persistantes
+    iptables -F
+    iptables -t nat -F
+    iptables -t mangle -F
+    iptables -X
+    
+    rm -f /etc/iptables/rules.v4 /etc/iptables/rules.v6
+    netfilter-persistent save 2>/dev/null || true
+    
+    # 6. Désinstallation complète de StrongSwan et des outils VPN
+    apt-get purge -y "strongswan*" iptables-persistent netfilter-persistent
+    apt-get autoremove -y
+    apt-get clean
+   ```
 
    ```bash
     # Stopper les services StrongSwan (au cas où)
