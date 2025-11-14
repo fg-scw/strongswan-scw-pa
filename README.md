@@ -4,30 +4,6 @@
 
 ```mermaid
 graph LR
-  subgraph VPC1["Scaleway VPC 1"]
-    LAN1["LAN PA 172.16.12.0/22"]
-    PA["Palo Alto VM-Series\nTRUST: 172.16.12.2/22\nUNTRUST: 172.16.8.2/22"]
-    NATGW["NAT GW\nPub: 51.159.162.39\nPriv: 172.16.8.3/22"]
-    LAN1 --- PA
-    PA --- NATGW
-  end
-
-  subgraph INTERNET["Internet"]
-  end
-
-  subgraph VPC2["Scaleway VPC 2"]
-    LAN2["LAN StrongSwan 172.16.32.0/22"]
-    SS["StrongSwan VM\nPub: 51.159.83.52\nPriv: 172.16.32.2/22"]
-    LAN2 --- SS
-  end
-
-  NATGW -- "UDP 500/4500 (NAT-T)" --> SS
-  PA -- "IPsec Tunnel 172.16.12.0/22 <-> 172.16.32.0/22" --- SS
-
-```
----
-```mermaid
-graph LR
   subgraph INTERNET["Internet Public"]
     PA_PUB["PA: 51.159.83.78"]
     SS_PUB["StrongSwan: 51.159.83.52"]
@@ -63,36 +39,6 @@ graph LR
   style VPC2 fill:#1f4d5c,stroke:#4db8cc,stroke-width:2px,color:#fff
  ``` 
 ---
-
-```text
-+-----------------------------+                         +-----------------------------+
-|         Scaleway VPC 1      |                         |         Scaleway VPC 2      |
-|        (Palo Alto side)     |                         |      (StrongSwan side)      |
-|                             |                         |                             |
-|  LAN PA : 172.16.12.0/22    |                         |  LAN SS : 172.16.32.0/22    |
-|                             |                         |                             |
-|   +---------------------+   |                         |   +---------------------+   |
-|   |    Palo Alto VM     |   |                         |   |   StrongSwan VM     |   |
-|   |---------------------|   |                         |   |---------------------|   |
-|   | TRUST  : 172.16.12.2|   |                         |   | Priv : 172.16.32.2  |   |
-|   | UNTRUST: 172.16.8.2 |-------------------------------IP Pub : 51.159.83.52   |   |
-|   +---------------------+   |                         |   +---------------------+   |
-|             |               |                         |                             |
-|             | 172.16.8.0/22 |                         |                             |
-|             v               |                         |                             |
-|   +---------------------+   |                         |                             |
-|   |     NAT Gateway     |   |                         |                             |
-|   |---------------------|   |                         |                             |
-|   | Priv : 172.16.8.3   |   |                         |                             |
-|   | Pub  : 51.159.162.39|----------------------------------------+                  |
-|   +---------------------+   |                         |          |                  |
-+-----------------------------+                         +----------|------------------+
-                                                                   |
-                                                                   |  Internet
-                                                                   |
-                      =================== IPsec Tunnel ====================
-                      172.16.12.0/22  <=========  VPN  =========>  172.16.32.0/22
-
 ```
 ---
 
