@@ -46,6 +46,35 @@ This setup creates an IPSEC VPN tunnel between a Scaleway VM running StrongSwan 
 └───────────────────────────────────────────────────────────────┘
 ```
 
+
+# Tunnel IPsec Palo Alto ↔ StrongSwan (Scaleway)
+
+## 1. Architecture high-level
+
+```mermaid
+graph LR
+    subgraph Scaleway_VPC1["VPC 1"]
+        LAN1["LAN PA<br/>172.16.12.0/22"]
+        PA["Palo Alto VM-Series<br/>TRUST: 172.16.12.2/22<br/>UNTRUST: 172.16.8.2/22"]
+        NATGW["Internet/NAT Gateway<br/>Pub: 51.159.162.39<br/>Priv: 172.16.8.3/22"]
+        LAN1 --- PA
+        PA --- NATGW
+    end
+
+    subgraph Internet
+    end
+
+    subgraph Scaleway_VPC2["VPC 2"]
+        LAN2["LAN StrongSwan<br/>172.16.32.0/22"]
+        SS["StrongSwan VM<br/>Pub: 51.159.83.52<br/>Priv: 172.16.32.2/22"]
+        LAN2 --- SS
+    end
+
+    NATGW -->|UDP 500/4500 NAT-T| SS
+    PA <-->|Tunnel IPsec<br/>172.16.12.0/22 ⇄ 172.16.32.0/22| SS
+
+
+
 ## Prerequisites
 
 ### On Scaleway
