@@ -24,7 +24,7 @@ LOCAL_ID=""          # ID local (identifiant de ce serveur)
 # Réseaux
 LOCAL_SUBNET=""      # Subnet VPC (ex: 10.0.0.0/24)
 REMOTE_SUBNET=""     # Subnet distant (ex: 192.168.1.0/24)
-VPC_INTERFACE="ens2" # Interface privée
+VPC_INTERFACE="ens6" # Interface privée
 WAN_INTERFACE="ens2" # Interface WAN
 
 # IKE / ESP
