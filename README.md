@@ -165,16 +165,16 @@ graph TB
    # Ajoute la route par défaut vers 172.16.32.2 (SRV StrongSwan)
     ip route add default via 172.16.32.2
    ```
-Tests rapides
-Sur la VM cliente :
-   ```bash
-    # Vers le serveur StrongSwan (LAN)
-    ping 172.16.32.2
-    
-    # Vers Internet
-    ping 1.1.1.1
-    ping google.com
-   ```
+  Tests rapides
+  Sur la VM cliente :
+  ```bash
+  # Vers le serveur StrongSwan (LAN)
+   ping 172.16.32.2
+  
+  # Vers Internet
+   ping 1.1.1.1
+  ping google.com
+  ```
  
 4. Check connectivity
 
