@@ -131,9 +131,8 @@ graph TB
    ```
 
 3. Copy your values
-
-  cd /root
    ```bash
+    cd /root
     sed -i "s/^PALO_ALTO_GW=\"\"/PALO_ALTO_GW=\"51.159.162.39\"/" scw-stgswan.sh
     sed -i "s/^PALO_ALTO_ID=\"\"/PALO_ALTO_ID=\"172.16.8.2\"/" scw-stgswan.sh
     sed -i "s/^PSK=\"\"/PSK=\"ko+alRLwBjRIVfca+1w5XpHr\/1zCNMaWpZpsk15lD1w=\"/" scw-stgswan.sh
