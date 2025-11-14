@@ -59,43 +59,6 @@ graph TB
   style LAN2 fill:#1e293b,stroke:#34d399,stroke-width:2px,color:#e0e7ff
 ```  
 
-
-```mermaid
-graph LR
-  subgraph INTERNET["Internet Public"]
-    PA_PUB["PA: 51.159.83.78"]
-    SS_PUB["StrongSwan: 51.159.83.52"]
-  end
-
-  subgraph VPC1_UNTRUST["VPC 1 - UNTRUST"]
-    UNTRUST_NET["172.16.8.0/22"]
-    NATGW["Public Gateway<br/>51.159.162.39<br/>172.16.8.3/22<br/>NAT-T: UDP 500/4500"]
-    PA_UNTRUST["PA UNTRUST<br/>172.16.8.2/22"]
-  end
-
-  subgraph VPC1_TRUST["VPC 1 - TRUST"]
-    TRUST_NET["172.16.12.0/22"]
-    PA_TRUST["PA TRUST<br/>172.16.12.2/22"]
-  end
-
-  subgraph VPC2["VPC 2 - StrongSwan"]
-    LAN2["172.16.32.0/22"]
-    SS["StrongSwan VM<br/>51.159.83.52<br/>172.16.32.2/22"]
-  end
-
-  TRUST_NET --- PA_TRUST
-  PA_TRUST -->|Tunnel Encrypted| PA_UNTRUST
-  PA_UNTRUST --- UNTRUST_NET
-  UNTRUST_NET --- NATGW
-  NATGW -->|NAT-T<br/>UDP 500/4500| SS_PUB
-  SS_PUB -.->|IPsec Tunnel| PA_PUB
-  SS --- LAN2
-
-  style INTERNET fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
-  style VPC1_UNTRUST fill:#2d5016,stroke:#7ec850,stroke-width:2px,color:#fff
-  style VPC1_TRUST fill:#3d2061,stroke:#a78bfa,stroke-width:2px,color:#fff
-  style VPC2 fill:#1f4d5c,stroke:#4db8cc,stroke-width:2px,color:#fff
- ``` 
 ---
 ```
 ---
