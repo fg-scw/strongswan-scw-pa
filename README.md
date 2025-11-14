@@ -160,13 +160,7 @@ If both sides are correctly configured, you should see an **ESTABLISHED** IKE SA
 
 1. Côté Serveur Strongswan
    ```bash
-    sysctl -w net.ipv4.ip_forward=1
-    
-    cat >/etc/sysctl.d/99-ipforward.conf <<'EOF'
-    net.ipv4.ip_forward = 1
-    EOF
-    
-    sysctl --system
+    sudo sysctl -w net.ipv4.ip_forward=1
    ```
    ---
    
