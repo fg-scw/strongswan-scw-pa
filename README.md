@@ -130,7 +130,21 @@ graph TB
    sudo ./scw-stgswan.sh
    ```
 
-3. Check the tunnel status:
+3. Copy your values
+
+  cd /root
+   ```bash
+    sed -i "s/^PALO_ALTO_GW=\"\"/PALO_ALTO_GW=\"51.159.162.39\"/" scw-stgswan.sh
+    sed -i "s/^PALO_ALTO_ID=\"\"/PALO_ALTO_ID=\"172.16.8.2\"/" scw-stgswan.sh
+    sed -i "s/^PSK=\"\"/PSK=\"ko+alRLwBjRIVfca+1w5XpHr\/1zCNMaWpZpsk15lD1w=\"/" scw-stgswan.sh
+    sed -i "s/^LOCAL_ID=\"\"/LOCAL_ID=\"51.159.83.52\"/" scw-stgswan.sh
+    sed -i "s/^LOCAL_SUBNET=\"\"/LOCAL_SUBNET=\"172.16.32.0\/22\"/" scw-stgswan.sh
+    sed -i "s/^REMOTE_SUBNET=\"\"/REMOTE_SUBNET=\"172.16.12.0\/22\"/" scw-stgswan.sh
+    sed -i "s/^VPC_INTERFACE=\"ens2\"/VPC_INTERFACE=\"ens6\"/" scw-stgswan.sh
+    sed -i "s/^WAN_INTERFACE=\"ens2\"/WAN_INTERFACE=\"ens2\"/" scw-stgswan.sh
+   ```
+
+4. Check the tunnel status:
 
    ```bash
    ipsec statusall
