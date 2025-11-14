@@ -136,6 +136,12 @@ graph TB
    ipsec statusall
    ```
 
+If both sides are correctly configured, you should see an **ESTABLISHED** IKE SA and be able to reach:
+
+- From Palo Alto LAN (`172.16.12.0/22`) → `172.16.32.0/22`
+- From StrongSwan LAN (`172.16.32.0/22`) → `172.16.12.0/22`
+
+
 ### 3. Configuration de VM Cliente & VM StrongSwan pour autoriser un accès internet aux VMs cliente
 
 1. Côté Serveur Strongswan
@@ -165,16 +171,17 @@ graph TB
    # Ajoute la route par défaut vers 172.16.32.2 (SRV StrongSwan)
     ip route add default via 172.16.32.2
    ```
-  Tests rapides
-  Sur la VM cliente :
-  ```bash
-  # Vers le serveur StrongSwan (LAN)
+   ---
+
+   Tests rapides
+   Sur la VM cliente :
+   ```bash
+   # Vers le serveur StrongSwan (LAN)
    ping 172.16.32.2
-  
-  # Vers Internet
+   # Vers Internet
    ping 1.1.1.1
-  ping google.com
-  ```
+   ping google.com
+   ```
  
 4. Check connectivity
 
@@ -195,8 +202,3 @@ graph TB
     root@scw-strongswan-client:~#
    ```
 
-
-If both sides are correctly configured, you should see an **ESTABLISHED** IKE SA and be able to reach:
-
-- From Palo Alto LAN (`172.16.12.0/22`) → `172.16.32.0/22`
-- From StrongSwan LAN (`172.16.32.0/22`) → `172.16.12.0/22`
