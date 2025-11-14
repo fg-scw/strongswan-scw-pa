@@ -25,8 +25,9 @@ graph LR
   PA -- "IPsec Tunnel 172.16.12.0/22 <-> 172.16.32.0/22" --- SS
 
 ```
+---
 
-
+```text
 +-----------------------------+                         +-----------------------------+
 |         Scaleway VPC 1      |                         |         Scaleway VPC 2      |
 |        (Palo Alto side)     |                         |      (StrongSwan side)      |
@@ -55,8 +56,7 @@ graph LR
                       =================== IPsec Tunnel ====================
                       172.16.12.0/22  <=========  VPN  =========>  172.16.32.0/22
 
-
-
+```
 ---
 
 ##  Files in this repository
